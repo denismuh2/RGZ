@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
-// ========== люйпня дкъ щйяонпрю/хлонпрю DLL ==========
+// ========== МАКРОС ДЛЯ ЭКСПОРТА/ИМПОРТА DLL ==========
 #ifdef _WIN32
     #ifdef CRYPTO_BUILD_DLL
         #define CRYPTO_EXPORT __declspec(dllexport)
@@ -14,14 +14,14 @@
     #define CRYPTO_EXPORT __attribute__((visibility("default")))
 #endif
 
-// ========== ярпсйрспш ==========
+// ========== СТРУКТУРЫ ==========
 struct ConstBuffer
 {
-    const uint8_t* data;
+    const uint8_t* data; // указатель на начало данных (входные)
     size_t size;
 };
 
-struct MutBuffer
+struct MutBuffer // указатель на начало буфера (выходные)
 {
     uint8_t* data;
     size_t size;
@@ -29,8 +29,8 @@ struct MutBuffer
 
 struct AlgorithmInfo
 {
-    const char* algorithm_name;
-    size_t key_size;
+    const char* algorithmName; //название шифра
+    size_t keySize;
 };
 
 enum OperationType
@@ -39,13 +39,13 @@ enum OperationType
     DECRYPT_OPERATION = 1
 };
 
-// ========== тсмйжхх (Я CRYPTO_EXPORT) ==========
+// ========== ФУНКЦИИ (с CRYPTO_EXPORT) ==========
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-CRYPTO_EXPORT const AlgorithmInfo* get_algorithm_info();
-CRYPTO_EXPORT size_t get_output_size(size_t input_size, int operation_type);
+CRYPTO_EXPORT const AlgorithmInfo* getAlgorithmInfo();
+CRYPTO_EXPORT size_t getOutputSize(size_t inputSize, int operation_type);
 CRYPTO_EXPORT int encrypt(ConstBuffer key, ConstBuffer input, MutBuffer* output);
 CRYPTO_EXPORT int decrypt(ConstBuffer key, ConstBuffer input, MutBuffer* output);
 
