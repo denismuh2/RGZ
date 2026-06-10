@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
-// ========== МАКРОС ДЛЯ ЭКСПОРТА/ИМПОРТА DLL ==========
+// ========== п°п░п п═п·п║ п■п⌡п╞ п╜п п║п÷п·п═п╒п░/п≤п°п÷п·п═п╒п░ DLL ==========
 #ifdef _WIN32
     #ifdef CRYPTO_BUILD_DLL
         #define CRYPTO_EXPORT __declspec(dllexport)
@@ -14,14 +14,14 @@
     #define CRYPTO_EXPORT __attribute__((visibility("default")))
 #endif
 
-// ========== СТРУКТУРЫ ==========
+// ========== п║п╒п═пёп п╒пёп═п╚ ==========
 struct ConstBuffer
 {
-    const uint8_t* data; // указатель на начало данных (входные)
+    const uint8_t* data; // я┐п╨п╟п╥п╟я┌п╣п╩я▄ п╫п╟ п╫п╟я┤п╟п╩п╬ п╢п╟п╫п╫я▀я┘ (п╡я┘п╬п╢п╫я▀п╣)
     size_t size;
 };
 
-struct MutBuffer // указатель на начало буфера (выходные)
+struct MutBuffer // я┐п╨п╟п╥п╟я┌п╣п╩я▄ п╫п╟ п╫п╟я┤п╟п╩п╬ п╠я┐я└п╣я─п╟ (п╡я▀я┘п╬п╢п╫я▀п╣)
 {
     uint8_t* data;
     size_t size;
@@ -29,7 +29,7 @@ struct MutBuffer // указатель на начало буфера (выходные)
 
 struct AlgorithmInfo
 {
-    const char* algorithmName; //название шифра
+    const char* algorithmName; //п╫п╟п╥п╡п╟п╫п╦п╣ я┬п╦я└я─п╟
     size_t keySize;
 };
 
@@ -39,7 +39,7 @@ enum OperationType
     DECRYPT_OPERATION = 1
 };
 
-// ========== ФУНКЦИИ (с CRYPTO_EXPORT) ==========
+// ========== п╓пёп²п п╕п≤п≤ (я│ CRYPTO_EXPORT) ==========
 #ifdef __cplusplus
 extern "C" {
 #endif
