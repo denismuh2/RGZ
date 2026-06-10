@@ -2,26 +2,28 @@
 
 #include "../../include/cryptoApi.h"
 
+// Экспортируемые функции из DLL
 extern "C"
 {
+    // Получение информации об алгоритме
+    CRYPTO_EXPORT const AlgorithmInfo* getAlgorithmInfo();
 
-CRYPTO_EXPORT const AlgorithmInfo* get_algorithm_info();
+    // Вычисление размера выходного буфера
+    CRYPTO_EXPORT size_t getOutputSize(
+        size_t inputSize,
+        int operationType
+    );
+    //Шифрование
+    CRYPTO_EXPORT int encrypt(
+        ConstBuffer key,      // ключ (32 байта)
+        ConstBuffer input,    // данные для шифрования
+        MutBuffer* output     // результат шифрования
+    );
 
-CRYPTO_EXPORT size_t get_output_size(
-    size_t input_size,
-    int operation_type
-);
-
-CRYPTO_EXPORT int encrypt(
-    ConstBuffer key,
-    ConstBuffer input,
-    MutBuffer* output
-);
-
-CRYPTO_EXPORT int decrypt(
-    ConstBuffer key,
-    ConstBuffer input,
-    MutBuffer* output
-);
-
+    //Дешифрование
+    CRYPTO_EXPORT int decrypt(
+        ConstBuffer key,      // ключ (32 байта)
+        ConstBuffer input,    // данные для расшифрования (шифротекст)
+        MutBuffer* output     // результат расшифрования (открытый текст)
+    );
 }
