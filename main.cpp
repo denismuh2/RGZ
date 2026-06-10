@@ -5,7 +5,6 @@
 #include <filesystem>
 #include <random>
 #include <algorithm>
-
 #include <windows.h>
 
 #include "include/cryptoApi.h"
