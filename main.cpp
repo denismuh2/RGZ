@@ -24,12 +24,12 @@ struct CryptoModule
     int (*decrypt)(ConstBuffer, ConstBuffer, MutBuffer*) = nullptr;
 };
 
-// Поиск всех DLL в папке algorithms/
+// РџРѕРёСЃРє РІСЃРµС… DLL РІ РїР°РїРєРµ algorithms/
 vector<string> find_dlls_in_algorithms_folder()
 {
     vector<string> dllPaths;
 
-    // Папка algorithms находится в корне проекта
+    // РџР°РїРєР° algorithms РЅР°С…РѕРґРёС‚СЃСЏ РІ РєРѕСЂРЅРµ РїСЂРѕРµРєС‚Р°
     filesystem::path algorithms_dir = filesystem::current_path() / "algorithms";
 
     if (!filesystem::exists(algorithms_dir))
@@ -42,7 +42,7 @@ vector<string> find_dlls_in_algorithms_folder()
     {
         if (entry.is_directory())
         {
-            // Ищем .dll или .so в подпапке
+            // РС‰РµРј .dll РёР»Рё .so РІ РїРѕРґРїР°РїРєРµ
             for (const auto& file : filesystem::directory_iterator(entry.path()))
             {
                 string ext = file.path().extension().string();
@@ -61,7 +61,7 @@ vector<string> find_dlls_in_algorithms_folder()
         }
         else
         {
-            // Ищем .dll прямо в папке algorithms (если есть)
+            // РС‰РµРј .dll РїСЂСЏРјРѕ РІ РїР°РїРєРµ algorithms (РµСЃР»Рё РµСЃС‚СЊ)
             string ext = entry.path().extension().string();
 #ifdef _WIN32
             if (ext == ".dll")
@@ -78,7 +78,7 @@ vector<string> find_dlls_in_algorithms_folder()
     return dllPaths;
 }
 
-// Загрузка модуля по пути
+// Р—Р°РіСЂСѓР·РєР° РјРѕРґСѓР»СЏ РїРѕ РїСѓС‚Рё
 bool loadModule(const string& dll_path, CryptoModule& module)
 {
     module.path = dll_path;
@@ -109,7 +109,7 @@ bool loadModule(const string& dll_path, CryptoModule& module)
            module.decrypt;
 }
 
-// Выбор алгоритма из списка
+// Р’С‹Р±РѕСЂ Р°Р»РіРѕСЂРёС‚РјР° РёР· СЃРїРёСЃРєР°
 bool selectAlgorithm(const vector<CryptoModule>& modules, CryptoModule& selected)
 {
     if (modules.empty())
@@ -184,7 +184,7 @@ int main()
 
     cout << "=== Multi-Algo Cryptotool ===\n\n";
 
-    // 1. Поиск всех DLL в папке algorithms/
+    // 1. РџРѕРёСЃРє РІСЃРµС… DLL РІ РїР°РїРєРµ algorithms/
     cout << "Searching for DLLs in 'algorithms/' folder...\n";
     vector<string> dllPaths = find_dlls_in_algorithms_folder();
 
@@ -196,7 +196,7 @@ int main()
         return 1;
     }
 
-    // 2. Загрузка всех найденных модулей
+    // 2. Р—Р°РіСЂСѓР·РєР° РІСЃРµС… РЅР°Р№РґРµРЅРЅС‹С… РјРѕРґСѓР»РµР№
     vector<CryptoModule> modules;
     for (const auto& path : dllPaths)
     {
@@ -218,7 +218,7 @@ int main()
         return 1;
     }
 
-    // 3. Выбор алгоритма пользователем
+    // 3. Р’С‹Р±РѕСЂ Р°Р»РіРѕСЂРёС‚РјР° РїРѕР»СЊР·РѕРІР°С‚РµР»РµРј
     CryptoModule module;
     if (!selectAlgorithm(modules, module))
     {
@@ -231,7 +231,7 @@ int main()
 
     vector<uint8_t> key;
 
-    // 4. Основное меню
+    // 4. РћСЃРЅРѕРІРЅРѕРµ РјРµРЅСЋ
     while (true)
     {
         int choice;
@@ -257,7 +257,7 @@ int main()
 
         if (choice == 7)
         {
-            // Переключение алгоритма
+            // РџРµСЂРµРєР»СЋС‡РµРЅРёРµ Р°Р»РіРѕСЂРёС‚РјР°
             if (!selectAlgorithm(modules, module))
             {
                 continue;
@@ -265,7 +265,7 @@ int main()
             info = module.getAlgorithmInfo();
             cout << "\n=== Selected: " << info->algorithmName << " ===\n";
             cout << "Key size: " << info->keySize  << " bytes\n";
-            key.clear(); // Очищаем старый ключ (он может быть неправильного размера)
+            key.clear(); // РћС‡РёС‰Р°РµРј СЃС‚Р°СЂС‹Р№ РєР»СЋС‡ (РѕРЅ РјРѕР¶РµС‚ Р±С‹С‚СЊ РЅРµРїСЂР°РІРёР»СЊРЅРѕРіРѕ СЂР°Р·РјРµСЂР°)
             continue;
         }
 
@@ -472,7 +472,7 @@ int main()
         }
     }
 
-    // 5. Очистка
+    // 5. РћС‡РёСЃС‚РєР°
     for (auto& module : modules)
     {
         if (module.library)
