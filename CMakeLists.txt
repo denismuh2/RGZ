@@ -13,29 +13,46 @@ add_subdirectory(algorithms/feistelCipher)
 # add_subdirectory(algorithms/другие...)
 
 # Главное приложение (EXE)
-add_executable(cryptum main.cpp)
-target_include_directories(cryptum PRIVATE ${INCLUDE_DIR})
+add_executable(EncryptionRGR main.cpp)
+
+# ИСПРАВЛЕНО: используем то же имя EncryptionRGR
+target_include_directories(EncryptionRGR PRIVATE ${INCLUDE_DIR})
 
 # Для Linux: добавляем библиотеку dl (для dlopen/dlsym)
 if(UNIX AND NOT WIN32)
-    target_link_libraries(cryptum dl)
+    target_link_libraries(EncryptionRGR dl)
+endif()
+
+# ВАЖНО: Указываем, что EXE зависит от DLL (чтобы DLL собрались первыми)
+if(WIN32)
+    add_dependencies(EncryptionRGR autokeyCipher feistelCipher)
 endif()
 
 # Кроссплатформенное копирование библиотек после сборки
 if(WIN32)
     # Windows: копируем .dll
-    add_custom_command(TARGET cryptum POST_BUILD
+    add_custom_command(TARGET EncryptionRGR POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${CMAKE_BINARY_DIR}/algorithms/autokeyCipher/autokey_cipher.dll
-            ${CMAKE_BINARY_DIR}/autokey_cipher.dll
-        COMMENT "Copying autokey_cipher.dll to binary directory"
+            ${CMAKE_BINARY_DIR}/algorithms/autokeyCipher/autokeyCipher.dll
+            ${CMAKE_BINARY_DIR}/autokeyCipher.dll
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_BINARY_DIR}/algorithms/feistelCipher/feistelCipher.dll
+            ${CMAKE_BINARY_DIR}/feistelCipher.dll
+        COMMENT "Copying DLLs to binary directory"
     )
 else()
     # Linux: копируем .so
-    add_custom_command(TARGET cryptum POST_BUILD
+    add_custom_command(TARGET EncryptionRGR POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${CMAKE_BINARY_DIR}/algorithms/autokeyCipher/libautokey_cipher.so
-            ${CMAKE_BINARY_DIR}/libautokey_cipher.so
-        COMMENT "Copying libautokey_cipher.so to binary directory"
+            ${CMAKE_BINARY_DIR}/algorithms/autokeyCipher/libautokeyCipher.so
+            ${CMAKE_BINARY_DIR}/libautokeyCipher.so
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_BINARY_DIR}/algorithms/feistelCipher/libfeistelCipher.so
+            ${CMAKE_BINARY_DIR}/libfeistelCipher.so
+        COMMENT "Copying shared libraries to binary directory"
     )
 endif()
+
+message(STATUS "Project: ${PROJECT_NAME}")
+message(STATUS "  Executable: ${PROJECT_NAME}")
+message(STATUS "  Libraries: autokeyCipher, feistelCipher")

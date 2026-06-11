@@ -5,17 +5,21 @@ namespace
 {
     constexpr size_t KEY_SIZE = 32;
 
+    // Размещаем в защищённой памяти (константная секция)
+    static const char ALGO_NAME[] = "autokeyСipher";
+
     // Коды возврата для функций encrypt/decrypt
-    constexpr int SUCCESS = 0;+
+    constexpr int SUCCESS = 0;
     constexpr int INVALID_KEY = 1;
     constexpr int INVALID_INPUT = 2;
     constexpr int INVALID_OUTPUT = 3;
 
     // Метаданные шифра
-    AlgorithmInfo algorithm_info
-    {
-        "autokeyСipher", KEY_SIZE
-    };
+const AlgorithmInfo algorithm_info
+{
+    "AutokeyCipher",
+    KEY_SIZE
+};
 }
 
 // Экспортируемые функции из DLL

@@ -1,8 +1,8 @@
 #pragma once
-
+#include <vector>
 #include <cstddef>
 #include <cstdint>
-
+#include <cstring>
 // ========== МАКРОС ДЛЯ ЭКСПОРТА/ИМПОРТА DLL ==========
 #ifdef _WIN32
     #ifdef CRYPTO_BUILD_DLL
