@@ -5,15 +5,31 @@
 #include <filesystem>
 #include <random>
 #include <algorithm>
-#include <windows.h>
+#include <iomanip>
+
+#ifdef _WIN32
+    #include <windows.h>
+#else
+    #include <dlfcn.h>
+    #include <cstring>
+#endif
 
 #include "include/cryptoApi.h"
 
 using namespace std;
 
+// Кроссплатформенный тип для библиотеки
+#ifdef _WIN32
+    using LibHandle = HMODULE;
+    const char* LIB_EXT = ".dll";
+#else
+    using LibHandle = void*;
+    const char* LIB_EXT = ".so";
+#endif
+
 struct CryptoModule
 {
-    HMODULE library = nullptr;
+    LibHandle library = nullptr;
     string name;
     string path;
 
@@ -23,84 +39,105 @@ struct CryptoModule
     int (*decrypt)(ConstBuffer, ConstBuffer, MutBuffer*) = nullptr;
 };
 
-// Поиск всех DLL в папке algorithms/
-vector<string> find_dlls_in_algorithms_folder()
+// Кроссплатформенная загрузка библиотеки
+LibHandle loadLibrary(const string& path)
 {
-    vector<string> dllPaths;
+#ifdef _WIN32
+    return LoadLibraryA(path.c_str());
+#else
+    return dlopen(path.c_str(), RTLD_LAZY);
+#endif
+}
 
-    // Папка algorithms находится в корне проекта
+// Кроссплатформенное получение функции
+void* getFunction(LibHandle lib, const char* name)
+{
+#ifdef _WIN32
+    return (void*)GetProcAddress(lib, name);
+#else
+    return dlsym(lib, name);
+#endif
+}
+
+// Кроссплатформенная выгрузка библиотеки
+void unloadLibrary(LibHandle lib)
+{
+#ifdef _WIN32
+    FreeLibrary(lib);
+#else
+    dlclose(lib);
+#endif
+}
+
+// Поиск всех библиотек в папке algorithms/
+vector<string> findLibsInAlgorithmsFolder()
+{
+    vector<string> libPaths;
     filesystem::path algorithms_dir = filesystem::current_path() / "algorithms";
 
     if (!filesystem::exists(algorithms_dir))
     {
         cout << "Папка 'algorithms' не найдена в: " << filesystem::current_path() << "\n";
-        return dllPaths;
+        return libPaths;
     }
 
     for (const auto& entry : filesystem::directory_iterator(algorithms_dir))
     {
         if (entry.is_directory())
         {
-            // Ищем .dll или .so в подпапке
             for (const auto& file : filesystem::directory_iterator(entry.path()))
             {
                 string ext = file.path().extension().string();
-                string filename = file.path().filename().string();
-
-#ifdef _WIN32
-                if (ext == ".dll")
-#else
-                if (ext == ".so" || filename.find(".so") != string::npos)
-#endif
+                if (ext == LIB_EXT)
                 {
-                    dllPaths.push_back(file.path().string());
+                    libPaths.push_back(file.path().string());
                     cout << "Найдена библиотека: " << file.path().filename().string() << "\n";
                 }
             }
         }
         else
         {
-            // Ищем .dll прямо в папке algorithms (если есть)
             string ext = entry.path().extension().string();
-#ifdef _WIN32
-            if (ext == ".dll")
-#else
-            if (ext == ".so")
-#endif
+            if (ext == LIB_EXT)
             {
-                dllPaths.push_back(entry.path().string());
+                libPaths.push_back(entry.path().string());
                 cout << "Найдена библиотека: " << entry.path().filename().string() << "\n";
             }
         }
     }
 
-    return dllPaths;
+    return libPaths;
 }
 
-// Загрузка модуля по пути
-bool loadModule(const string& dll_path, CryptoModule& module)
+// Загрузка модуля dll по пути
+bool loadModule(const string& libPath, CryptoModule& module)
 {
-    module.path = dll_path;
-    module.name = filesystem::path(dll_path).filename().string();
+    module.path = libPath;
+    module.name = filesystem::path(libPath).filename().string();
 
-    module.library = LoadLibraryA(dll_path.c_str());
+    module.library = loadLibrary(libPath);
 
     if (!module.library)
     {
+#ifdef _WIN32
+        cerr << "Ошибка загрузки: " << GetLastError() << endl;
+#else
+        cerr << "Ошибка загрузки: " << dlerror() << endl;
+#endif
         return false;
     }
 
     module.getAlgorithmInfo = reinterpret_cast<decltype(module.getAlgorithmInfo)>(
-        GetProcAddress(module.library, "getAlgorithmInfo"));
+        getFunction(module.library, "getAlgorithmInfo"));
 
     module.getOutputSize = reinterpret_cast<decltype(module.getOutputSize)>(
-        GetProcAddress(module.library, "getOutputSize"));
+        getFunction(module.library, "getOutputSize"));
 
     module.encrypt = reinterpret_cast<decltype(module.encrypt)>(
-        GetProcAddress(module.library, "encrypt"));
+        getFunction(module.library, "encrypt"));
 
     module.decrypt = reinterpret_cast<decltype(module.decrypt)>(
-        GetProcAddress(module.library, "decrypt"));
+        getFunction(module.library, "decrypt"));
 
     return module.getAlgorithmInfo &&
            module.getOutputSize &&
@@ -141,6 +178,7 @@ bool selectAlgorithm(const vector<CryptoModule>& modules, CryptoModule& selected
     return true;
 }
 
+// Генерация ключа
 vector<uint8_t> generateKey(size_t size)
 {
     random_device rd;
@@ -152,6 +190,7 @@ vector<uint8_t> generateKey(size_t size)
     return key;
 }
 
+// Сохранение бинарного файла
 bool saveBinary(const string& path, const vector<uint8_t>& data)
 {
     ofstream file(path, ios::binary);
@@ -160,6 +199,7 @@ bool saveBinary(const string& path, const vector<uint8_t>& data)
     return true;
 }
 
+// Загрузка бинарного файла
 bool loadBinary(const string& path, vector<uint8_t>& data)
 {
     ifstream file(path, ios::binary);
@@ -176,33 +216,26 @@ bool loadBinary(const string& path, vector<uint8_t>& data)
 
 int main()
 {
-
 #ifdef _WIN32
-    // Устанавливаем кодовую страницу консоли на UTF-8
     SetConsoleOutputCP(65001);
     SetConsoleCP(65001);
-    // Отключаем буферизацию, чтобы русский текст выводился сразу :)
     setvbuf(stdout, nullptr, _IONBF, 0);
     setvbuf(stderr, nullptr, _IONBF, 0);
 #endif
 
-    cout << "=== Multi-Algo Cryptotool ===\n\n";
-
-    // 1. Поиск всех DLL в папке algorithms/
     cout << "Поиск библиотек в папке 'algorithms/'...\n";
-    vector<string> dllPaths = find_dlls_in_algorithms_folder();
+    vector<string> libPaths = findLibsInAlgorithmsFolder();
 
-    if (dllPaths.empty())
+    if (libPaths.empty())
     {
-        cout << "Библиотеки не найдены. Поместите DLL ваших алгоритмов в папку 'algorithms/'.\n";
+        cout << "Библиотеки не найдены. Поместите библиотеки алгоритмов в папку 'algorithms/'.\n";
         cout << "Нажмите Enter для выхода...";
         cin.get();
         return 1;
     }
 
-    // 2. Загрузка всех найденных модулей
     vector<CryptoModule> modules;
-    for (const auto& path : dllPaths)
+    for (const auto& path : libPaths)
     {
         CryptoModule module;
         if (loadModule(path, module))
@@ -222,7 +255,7 @@ int main()
         return 1;
     }
 
-    // 3. Выбор алгоритма пользователем
+    // Выбор алгоритма пользователем
     CryptoModule module;
     if (!selectAlgorithm(modules, module))
     {
@@ -235,7 +268,7 @@ int main()
 
     vector<uint8_t> key;
 
-    // 4. Основное меню
+    // Основное меню
     while (true)
     {
         int choice;
@@ -269,7 +302,7 @@ int main()
             info = module.getAlgorithmInfo();
             cout << "\n=== Выбран: " << info->algorithmName << " ===\n";
             cout << "Размер ключа: " << info->keySize  << " байт\n";
-            key.clear(); // Очищаем старый ключ (он может быть неправильного размера)
+            key.clear();
             continue;
         }
 
@@ -291,7 +324,7 @@ int main()
             }
         }
 
-        else if (choice == 2)  // Load key
+        else if (choice == 2)
         {
             string path;
             cout << "Загрузить ключ из файла: ";
@@ -315,7 +348,7 @@ int main()
             cout << "Ключ загружен (" << key.size() << " байт)\n";
         }
 
-        else if (choice == 3)  // Encrypt text
+        else if (choice == 3)
         {
             if (key.empty())
             {
@@ -343,7 +376,7 @@ int main()
                 cout << "\nЗашифрованные байты (" << output.size() << "):\n";
                 for (uint8_t b : output)
                 {
-                    printf("%02X ", b);
+                    cout << hex << setw(2) << setfill('0') << static_cast<int>(b) << " ";
                 }
                 cout << "\n";
             }
@@ -353,7 +386,7 @@ int main()
             }
         }
 
-        else if (choice == 4)  // Decrypt text from hex
+        else if (choice == 4)
         {
             if (key.empty())
             {
@@ -361,16 +394,16 @@ int main()
                 continue;
             }
 
-            string hex_input;
+            string hexInput;
             cout << "Зашифрованные hex-байты: ";
-            getline(cin, hex_input);
+            getline(cin, hexInput);
 
             vector<uint8_t> input;
-            for (size_t i = 0; i < hex_input.length(); i += 2)
+            for (size_t i = 0; i < hexInput.length(); i += 2)
             {
-                if (i + 1 < hex_input.length())
+                if (i + 1 < hexInput.length())
                 {
-                    string  byteStr = hex_input.substr(i, 2);
+                    string  byteStr = hexInput.substr(i, 2);
                     uint8_t byte = static_cast<uint8_t>(stoi(byteStr, nullptr, 16));
                     input.push_back(byte);
                 }
@@ -395,7 +428,7 @@ int main()
             }
         }
 
-        else if (choice == 5)  // Encrypt file
+        else if (choice == 5)
         {
             if (key.empty())
             {
@@ -435,7 +468,7 @@ int main()
             }
         }
 
-        else if (choice == 6)  // Decrypt file
+        else if (choice == 6)
         {
             if (key.empty())
             {
@@ -477,11 +510,11 @@ int main()
     }
 
     // 5. Очистка
-    for (auto& module : modules)
+    for (auto& mod : modules)
     {
-        if (module.library)
+        if (mod.library)
         {
-            FreeLibrary(module.library);
+            unloadLibrary(mod.library);
         }
     }
 
