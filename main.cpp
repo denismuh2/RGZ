@@ -23,17 +23,17 @@ struct CryptoModule
     int (*decrypt)(ConstBuffer, ConstBuffer, MutBuffer*) = nullptr;
 };
 
-// Поиск всех DLL в папке algorithms/
+// РџРѕРёСЃРє РІСЃРµС… DLL РІ РїР°РїРєРµ algorithms/
 vector<string> find_dlls_in_algorithms_folder()
 {
     vector<string> dllPaths;
 
-    // Папка algorithms находится в корне проекта
+    // РџР°РїРєР° algorithms РЅР°С…РѕРґРёС‚СЃСЏ РІ РєРѕСЂРЅРµ РїСЂРѕРµРєС‚Р°
     filesystem::path algorithms_dir = filesystem::current_path() / "algorithms";
 
     if (!filesystem::exists(algorithms_dir))
     {
-        cout << "Папка 'algorithms' не найдена в: " << filesystem::current_path() << "\n";
+        cout << "РџР°РїРєР° 'algorithms' РЅРµ РЅР°Р№РґРµРЅР° РІ: " << filesystem::current_path() << "\n";
         return dllPaths;
     }
 
@@ -41,7 +41,7 @@ vector<string> find_dlls_in_algorithms_folder()
     {
         if (entry.is_directory())
         {
-            // Ищем .dll или .so в подпапке
+            // РС‰РµРј .dll РёР»Рё .so РІ РїРѕРґРїР°РїРєРµ
             for (const auto& file : filesystem::directory_iterator(entry.path()))
             {
                 string ext = file.path().extension().string();
@@ -54,13 +54,13 @@ vector<string> find_dlls_in_algorithms_folder()
 #endif
                 {
                     dllPaths.push_back(file.path().string());
-                    cout << "Найдена библиотека: " << file.path().filename().string() << "\n";
+                    cout << "РќР°Р№РґРµРЅР° Р±РёР±Р»РёРѕС‚РµРєР°: " << file.path().filename().string() << "\n";
                 }
             }
         }
         else
         {
-            // Ищем .dll прямо в папке algorithms (если есть)
+            // РС‰РµРј .dll РїСЂСЏРјРѕ РІ РїР°РїРєРµ algorithms (РµСЃР»Рё РµСЃС‚СЊ)
             string ext = entry.path().extension().string();
 #ifdef _WIN32
             if (ext == ".dll")
@@ -69,7 +69,7 @@ vector<string> find_dlls_in_algorithms_folder()
 #endif
             {
                 dllPaths.push_back(entry.path().string());
-                cout << "Найдена библиотека: " << entry.path().filename().string() << "\n";
+                cout << "РќР°Р№РґРµРЅР° Р±РёР±Р»РёРѕС‚РµРєР°: " << entry.path().filename().string() << "\n";
             }
         }
     }
@@ -77,7 +77,7 @@ vector<string> find_dlls_in_algorithms_folder()
     return dllPaths;
 }
 
-// Загрузка модуля по пути
+// Р—Р°РіСЂСѓР·РєР° РјРѕРґСѓР»СЏ РїРѕ РїСѓС‚Рё
 bool loadModule(const string& dll_path, CryptoModule& module)
 {
     module.path = dll_path;
@@ -108,32 +108,32 @@ bool loadModule(const string& dll_path, CryptoModule& module)
            module.decrypt;
 }
 
-// Выбор алгоритма из списка
+// Р’С‹Р±РѕСЂ Р°Р»РіРѕСЂРёС‚РјР° РёР· СЃРїРёСЃРєР°
 bool selectAlgorithm(const vector<CryptoModule>& modules, CryptoModule& selected)
 {
     if (modules.empty())
     {
-        cout << "Алгоритмы не найдены!\n";
+        cout << "РђР»РіРѕСЂРёС‚РјС‹ РЅРµ РЅР°Р№РґРµРЅС‹!\n";
         return false;
     }
 
-    cout << "\n=== Доступные алгоритмы ===\n";
+    cout << "\n=== Р”РѕСЃС‚СѓРїРЅС‹Рµ Р°Р»РіРѕСЂРёС‚РјС‹ ===\n";
     for (size_t i = 0; i < modules.size(); ++i)
     {
         const AlgorithmInfo* info = modules[i].getAlgorithmInfo();
         cout << i + 1 << ". " << info->algorithmName
-                  << " (размер ключа: " << info->keySize  << " байт)\n";
-        cout << "   Файл: " << modules[i].name << "\n";
+                  << " (СЂР°Р·РјРµСЂ РєР»СЋС‡Р°: " << info->keySize  << " Р±Р°Р№С‚)\n";
+        cout << "   Р¤Р°Р№Р»: " << modules[i].name << "\n";
     }
 
     int choice;
-    cout << "\nВыберите алгоритм (1-" << modules.size() << "): ";
+    cout << "\nР’С‹Р±РµСЂРёС‚Рµ Р°Р»РіРѕСЂРёС‚Рј (1-" << modules.size() << "): ";
     cin >> choice;
     cin.ignore();
 
     if (choice < 1 || choice > static_cast<int>(modules.size()))
     {
-        cout << "Неверный выбор\n";
+        cout << "РќРµРІРµСЂРЅС‹Р№ РІС‹Р±РѕСЂ\n";
         return false;
     }
 
@@ -177,24 +177,24 @@ bool loadBinary(const string& path, vector<uint8_t>& data)
 int main()
 {
 #ifdef _WIN32
-    system("chcp 1251 > nul");  // Переключаем консоль на Windows-1251
+    system("chcp 1251 > nul");  // РџРµСЂРµРєР»СЋС‡Р°РµРј РєРѕРЅСЃРѕР»СЊ РЅР° Windows-1251
 #endif
 
     cout << "=== Multi-Algo Cryptotool ===\n\n";
 
-    // 1. Поиск всех DLL в папке algorithms/
-    cout << "Поиск библиотек в папке 'algorithms/'...\n";
+    // 1. РџРѕРёСЃРє РІСЃРµС… DLL РІ РїР°РїРєРµ algorithms/
+    cout << "РџРѕРёСЃРє Р±РёР±Р»РёРѕС‚РµРє РІ РїР°РїРєРµ 'algorithms/'...\n";
     vector<string> dllPaths = find_dlls_in_algorithms_folder();
 
     if (dllPaths.empty())
     {
-        cout << "Библиотеки не найдены. Поместите DLL ваших алгоритмов в папку 'algorithms/'.\n";
-        cout << "Нажмите Enter для выхода...";
+        cout << "Р‘РёР±Р»РёРѕС‚РµРєРё РЅРµ РЅР°Р№РґРµРЅС‹. РџРѕРјРµСЃС‚РёС‚Рµ DLL РІР°С€РёС… Р°Р»РіРѕСЂРёС‚РјРѕРІ РІ РїР°РїРєСѓ 'algorithms/'.\n";
+        cout << "РќР°Р¶РјРёС‚Рµ Enter РґР»СЏ РІС‹С…РѕРґР°...";
         cin.get();
         return 1;
     }
 
-    // 2. Загрузка всех найденных модулей
+    // 2. Р—Р°РіСЂСѓР·РєР° РІСЃРµС… РЅР°Р№РґРµРЅРЅС‹С… РјРѕРґСѓР»РµР№
     vector<CryptoModule> modules;
     for (const auto& path : dllPaths)
     {
@@ -202,21 +202,21 @@ int main()
         if (loadModule(path, module))
         {
             modules.push_back(module);
-            cout << "Загружено: " << module.name << "\n";
+            cout << "Р—Р°РіСЂСѓР¶РµРЅРѕ: " << module.name << "\n";
         }
         else
         {
-            cout << "Не удалось загрузить: " << path << "\n";
+            cout << "РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ: " << path << "\n";
         }
     }
 
     if (modules.empty())
     {
-        cout << "Нет загруженных алгоритмов.\n";
+        cout << "РќРµС‚ Р·Р°РіСЂСѓР¶РµРЅРЅС‹С… Р°Р»РіРѕСЂРёС‚РјРѕРІ.\n";
         return 1;
     }
 
-    // 3. Выбор алгоритма пользователем
+    // 3. Р’С‹Р±РѕСЂ Р°Р»РіРѕСЂРёС‚РјР° РїРѕР»СЊР·РѕРІР°С‚РµР»РµРј
     CryptoModule module;
     if (!selectAlgorithm(modules, module))
     {
@@ -224,26 +224,26 @@ int main()
     }
 
     const AlgorithmInfo* info = module.getAlgorithmInfo();
-    cout << "\n=== Выбран: " << info->algorithmName << " ===\n";
-    cout << "Размер ключа: " << info->keySize << " байт\n";
+    cout << "\n=== Р’С‹Р±СЂР°РЅ: " << info->algorithmName << " ===\n";
+    cout << "Р Р°Р·РјРµСЂ РєР»СЋС‡Р°: " << info->keySize << " Р±Р°Р№С‚\n";
 
     vector<uint8_t> key;
 
-    // 4. Основное меню
+    // 4. РћСЃРЅРѕРІРЅРѕРµ РјРµРЅСЋ
     while (true)
     {
         int choice;
 
-        cout << "\n=== Меню ===\n";
-        cout << "1. Сгенерировать ключ\n";
-        cout << "2. Загрузить ключ\n";
-        cout << "3. Зашифровать текст\n";
-        cout << "4. Расшифровать текст (из hex)\n";
-        cout << "5. Зашифровать файл\n";
-        cout << "6. Расшифровать файл\n";
-        cout << "7. Сменить алгоритм\n";
-        cout << "0. Выход\n";
-        cout << "Выбор: ";
+        cout << "\n=== РњРµРЅСЋ ===\n";
+        cout << "1. РЎРіРµРЅРµСЂРёСЂРѕРІР°С‚СЊ РєР»СЋС‡\n";
+        cout << "2. Р—Р°РіСЂСѓР·РёС‚СЊ РєР»СЋС‡\n";
+        cout << "3. Р—Р°С€РёС„СЂРѕРІР°С‚СЊ С‚РµРєСЃС‚\n";
+        cout << "4. Р Р°СЃС€РёС„СЂРѕРІР°С‚СЊ С‚РµРєСЃС‚ (РёР· hex)\n";
+        cout << "5. Р—Р°С€РёС„СЂРѕРІР°С‚СЊ С„Р°Р№Р»\n";
+        cout << "6. Р Р°СЃС€РёС„СЂРѕРІР°С‚СЊ С„Р°Р№Р»\n";
+        cout << "7. РЎРјРµРЅРёС‚СЊ Р°Р»РіРѕСЂРёС‚Рј\n";
+        cout << "0. Р’С‹С…РѕРґ\n";
+        cout << "Р’С‹Р±РѕСЂ: ";
 
         cin >> choice;
         cin.ignore();
@@ -255,15 +255,15 @@ int main()
 
         if (choice == 7)
         {
-            // Переключение алгоритма
+            // РџРµСЂРµРєР»СЋС‡РµРЅРёРµ Р°Р»РіРѕСЂРёС‚РјР°
             if (!selectAlgorithm(modules, module))
             {
                 continue;
             }
             info = module.getAlgorithmInfo();
-            cout << "\n=== Выбран: " << info->algorithmName << " ===\n";
-            cout << "Размер ключа: " << info->keySize  << " байт\n";
-            key.clear(); // Очищаем старый ключ (он может быть неправильного размера)
+            cout << "\n=== Р’С‹Р±СЂР°РЅ: " << info->algorithmName << " ===\n";
+            cout << "Р Р°Р·РјРµСЂ РєР»СЋС‡Р°: " << info->keySize  << " Р±Р°Р№С‚\n";
+            key.clear(); // РћС‡РёС‰Р°РµРј СЃС‚Р°СЂС‹Р№ РєР»СЋС‡ (РѕРЅ РјРѕР¶РµС‚ Р±С‹С‚СЊ РЅРµРїСЂР°РІРёР»СЊРЅРѕРіРѕ СЂР°Р·РјРµСЂР°)
             continue;
         }
 
@@ -272,53 +272,53 @@ int main()
             key = generateKey(info->keySize);
 
             string path;
-            cout << "Сохранить ключ в файл: ";
+            cout << "РЎРѕС…СЂР°РЅРёС‚СЊ РєР»СЋС‡ РІ С„Р°Р№Р»: ";
             getline(cin, path);
 
             if (saveBinary(path, key))
             {
-                cout << "Ключ сохранён (" << key.size() << " байт)\n";
+                cout << "РљР»СЋС‡ СЃРѕС…СЂР°РЅС‘РЅ (" << key.size() << " Р±Р°Р№С‚)\n";
             }
             else
             {
-                cout << "Не удалось сохранить ключ\n";
+                cout << "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РєР»СЋС‡\n";
             }
         }
 
         else if (choice == 2)  // Load key
         {
             string path;
-            cout << "Загрузить ключ из файла: ";
+            cout << "Р—Р°РіСЂСѓР·РёС‚СЊ РєР»СЋС‡ РёР· С„Р°Р№Р»Р°: ";
             getline(cin, path);
 
             vector<uint8_t> loadedKey;
             if (!loadBinary(path, loadedKey))
             {
-                cout << "Не удалось загрузить ключ\n";
+                cout << "РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РєР»СЋС‡\n";
                 continue;
             }
 
             if (loadedKey.size() != info->keySize)
             {
-                cout << "Неверный размер ключа. Ожидалось " << info->keySize
-                          << " байт, получено " << loadedKey.size() << " байт\n";
+                cout << "РќРµРІРµСЂРЅС‹Р№ СЂР°Р·РјРµСЂ РєР»СЋС‡Р°. РћР¶РёРґР°Р»РѕСЃСЊ " << info->keySize
+                          << " Р±Р°Р№С‚, РїРѕР»СѓС‡РµРЅРѕ " << loadedKey.size() << " Р±Р°Р№С‚\n";
                 continue;
             }
 
             key = loadedKey;
-            cout << "Ключ загружен (" << key.size() << " байт)\n";
+            cout << "РљР»СЋС‡ Р·Р°РіСЂСѓР¶РµРЅ (" << key.size() << " Р±Р°Р№С‚)\n";
         }
 
         else if (choice == 3)  // Encrypt text
         {
             if (key.empty())
             {
-                cout << "Пожалуйста, сначала сгенерируйте или загрузите ключ (пункт 1 или 2)\n";
+                cout << "РџРѕР¶Р°Р»СѓР№СЃС‚Р°, СЃРЅР°С‡Р°Р»Р° СЃРіРµРЅРµСЂРёСЂСѓР№С‚Рµ РёР»Рё Р·Р°РіСЂСѓР·РёС‚Рµ РєР»СЋС‡ (РїСѓРЅРєС‚ 1 РёР»Рё 2)\n";
                 continue;
             }
 
             string text;
-            cout << "Текст для шифрования: ";
+            cout << "РўРµРєСЃС‚ РґР»СЏ С€РёС„СЂРѕРІР°РЅРёСЏ: ";
             getline(cin, text);
 
             vector<uint8_t> input(text.begin(), text.end());
@@ -334,7 +334,7 @@ int main()
 
             if (result >= 0)
             {
-                cout << "\nЗашифрованные байты (" << output.size() << "):\n";
+                cout << "\nР—Р°С€РёС„СЂРѕРІР°РЅРЅС‹Рµ Р±Р°Р№С‚С‹ (" << output.size() << "):\n";
                 for (uint8_t b : output)
                 {
                     printf("%02X ", b);
@@ -351,7 +351,7 @@ int main()
             }
             else
             {
-                cout << "Ошибка шифрования, код: " << result << "\n";
+                cout << "РћС€РёР±РєР° С€РёС„СЂРѕРІР°РЅРёСЏ, РєРѕРґ: " << result << "\n";
             }
         }
 
@@ -359,12 +359,12 @@ int main()
         {
             if (key.empty())
             {
-                cout << "Пожалуйста, сначала сгенерируйте или загрузите ключ (пункт 1 или 2)\n";
+                cout << "РџРѕР¶Р°Р»СѓР№СЃС‚Р°, СЃРЅР°С‡Р°Р»Р° СЃРіРµРЅРµСЂРёСЂСѓР№С‚Рµ РёР»Рё Р·Р°РіСЂСѓР·РёС‚Рµ РєР»СЋС‡ (РїСѓРЅРєС‚ 1 РёР»Рё 2)\n";
                 continue;
             }
 
             string hex_input;
-            cout << "Зашифрованные hex-байты: ";
+            cout << "Р—Р°С€РёС„СЂРѕРІР°РЅРЅС‹Рµ hex-Р±Р°Р№С‚С‹: ";
             getline(cin, hex_input);
 
             vector<uint8_t> input;
@@ -389,11 +389,11 @@ int main()
             if (result >= 0)
             {
                 string text(output.begin(), output.end());
-                cout << "Расшифрованный текст: " << text << "\n";
+                cout << "Р Р°СЃС€РёС„СЂРѕРІР°РЅРЅС‹Р№ С‚РµРєСЃС‚: " << text << "\n";
             }
             else
             {
-                cout << "Ошибка расшифрования, код: " << result << "\n";
+                cout << "РћС€РёР±РєР° СЂР°СЃС€РёС„СЂРѕРІР°РЅРёСЏ, РєРѕРґ: " << result << "\n";
             }
         }
 
@@ -401,20 +401,20 @@ int main()
         {
             if (key.empty())
             {
-                cout << "Пожалуйста, сначала сгенерируйте или загрузите ключ (пункт 1 или 2)\n";
+                cout << "РџРѕР¶Р°Р»СѓР№СЃС‚Р°, СЃРЅР°С‡Р°Р»Р° СЃРіРµРЅРµСЂРёСЂСѓР№С‚Рµ РёР»Рё Р·Р°РіСЂСѓР·РёС‚Рµ РєР»СЋС‡ (РїСѓРЅРєС‚ 1 РёР»Рё 2)\n";
                 continue;
             }
 
             string inputPath, outputPath;
-            cout << "Входной файл: ";
+            cout << "Р’С…РѕРґРЅРѕР№ С„Р°Р№Р»: ";
             getline(cin, inputPath);
-            cout << "Выходной файл: ";
+            cout << "Р’С‹С…РѕРґРЅРѕР№ С„Р°Р№Р»: ";
             getline(cin, outputPath);
 
             vector<uint8_t> input;
             if (!loadBinary(inputPath, input))
             {
-                cout << "Не удалось прочитать входной файл\n";
+                cout << "РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРѕС‡РёС‚Р°С‚СЊ РІС…РѕРґРЅРѕР№ С„Р°Р№Р»\n";
                 continue;
             }
 
@@ -429,11 +429,11 @@ int main()
 
             if (result >= 0 && saveBinary(outputPath, output))
             {
-                cout << "Файл успешно зашифрован\n";
+                cout << "Р¤Р°Р№Р» СѓСЃРїРµС€РЅРѕ Р·Р°С€РёС„СЂРѕРІР°РЅ\n";
             }
             else
             {
-                cout << "Ошибка шифрования\n";
+                cout << "РћС€РёР±РєР° С€РёС„СЂРѕРІР°РЅРёСЏ\n";
             }
         }
 
@@ -441,20 +441,20 @@ int main()
         {
             if (key.empty())
             {
-                cout << "Пожалуйста, сначала сгенерируйте или загрузите ключ (пункт 1 или 2)\n";
+                cout << "РџРѕР¶Р°Р»СѓР№СЃС‚Р°, СЃРЅР°С‡Р°Р»Р° СЃРіРµРЅРµСЂРёСЂСѓР№С‚Рµ РёР»Рё Р·Р°РіСЂСѓР·РёС‚Рµ РєР»СЋС‡ (РїСѓРЅРєС‚ 1 РёР»Рё 2)\n";
                 continue;
             }
 
             string inputPath, outputPath;
-            cout << "Входной файл: ";
+            cout << "Р’С…РѕРґРЅРѕР№ С„Р°Р№Р»: ";
             getline(cin, inputPath);
-            cout << "Выходной файл: ";
+            cout << "Р’С‹С…РѕРґРЅРѕР№ С„Р°Р№Р»: ";
             getline(cin, outputPath);
 
             vector<uint8_t> input;
             if (!loadBinary(inputPath, input))
             {
-                cout << "Не удалось прочитать входной файл\n";
+                cout << "РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРѕС‡РёС‚Р°С‚СЊ РІС…РѕРґРЅРѕР№ С„Р°Р№Р»\n";
                 continue;
             }
 
@@ -469,16 +469,16 @@ int main()
 
             if (result >= 0 && saveBinary(outputPath, output))
             {
-                cout << "Файл успешно расшифрован\n";
+                cout << "Р¤Р°Р№Р» СѓСЃРїРµС€РЅРѕ СЂР°СЃС€РёС„СЂРѕРІР°РЅ\n";
             }
             else
             {
-                cout << "Ошибка расшифрования\n";
+                cout << "РћС€РёР±РєР° СЂР°СЃС€РёС„СЂРѕРІР°РЅРёСЏ\n";
             }
         }
     }
 
-    // 5. Очистка
+    // 5. РћС‡РёСЃС‚РєР°
     for (auto& module : modules)
     {
         if (module.library)
