@@ -181,7 +181,7 @@ int main()
     // Устанавливаем кодовую страницу консоли на UTF-8
     SetConsoleOutputCP(65001);
     SetConsoleCP(65001);
-    // Отключаем буферизацию, чтобы русский текст выводился сразу
+    // Отключаем буферизацию, чтобы русский текст выводился сразу :)
     setvbuf(stdout, nullptr, _IONBF, 0);
     setvbuf(stderr, nullptr, _IONBF, 0);
 #endif
