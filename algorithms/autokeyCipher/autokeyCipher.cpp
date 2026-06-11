@@ -1,39 +1,39 @@
 #include "autokeyCipher.h"
 
-//анонимное пространство имен
+//Р°РЅРѕРЅРёРјРЅРѕРµ РїСЂРѕСЃС‚СЂР°РЅСЃС‚РІРѕ РёРјРµРЅ
 namespace
 {
     constexpr size_t KEY_SIZE = 32;
 
-    // Коды возврата для функций encrypt/decrypt
+    // РљРѕРґС‹ РІРѕР·РІСЂР°С‚Р° РґР»СЏ С„СѓРЅРєС†РёР№ encrypt/decrypt
     constexpr int SUCCESS = 0;+
     constexpr int INVALID_KEY = 1;
     constexpr int INVALID_INPUT = 2;
     constexpr int INVALID_OUTPUT = 3;
 
-    // Метаданные шифра
+    // РњРµС‚Р°РґР°РЅРЅС‹Рµ С€РёС„СЂР°
     AlgorithmInfo algorithm_info
     {
-        "autokeyСipher", KEY_SIZE
+        "autokeyРЎipher", KEY_SIZE
     };
 }
 
-// Экспортируемые функции из DLL
+// Р­РєСЃРїРѕСЂС‚РёСЂСѓРµРјС‹Рµ С„СѓРЅРєС†РёРё РёР· DLL
 extern "C"
 {
-    // характеристики алгоритма
+    // С…Р°СЂР°РєС‚РµСЂРёСЃС‚РёРєРё Р°Р»РіРѕСЂРёС‚РјР°
     const AlgorithmInfo* getAlgorithmInfo()
     {
         return &algorithm_info;
     }
 
-    // Вычисляет размер выходного буфера, необходимый для результата операции.(в автоключе размер данных не меняется)
+    // Р’С‹С‡РёСЃР»СЏРµС‚ СЂР°Р·РјРµСЂ РІС‹С…РѕРґРЅРѕРіРѕ Р±СѓС„РµСЂР°, РЅРµРѕР±С…РѕРґРёРјС‹Р№ РґР»СЏ СЂРµР·СѓР»СЊС‚Р°С‚Р° РѕРїРµСЂР°С†РёРё.(РІ Р°РІС‚РѕРєР»СЋС‡Рµ СЂР°Р·РјРµСЂ РґР°РЅРЅС‹С… РЅРµ РјРµРЅСЏРµС‚СЃСЏ)
     size_t getOutputSize(size_t inputSize, int /*operationType*/)
     {
         return inputSize;
     }
 
-    // шифрование
+    // С€РёС„СЂРѕРІР°РЅРёРµ
     int encrypt(ConstBuffer key, ConstBuffer input, MutBuffer* output)
     {
         try
@@ -65,7 +65,7 @@ extern "C"
                 return INVALID_OUTPUT;
             }
 
-            // Шифрование
+            // РЁРёС„СЂРѕРІР°РЅРёРµ
             for (size_t i = 0; i < input.size; ++i)
             {
                 uint8_t autokeyByte;
@@ -79,7 +79,7 @@ extern "C"
                     autokeyByte = output->data[i - KEY_SIZE];
                 }
 
-                // открытый текст + байт ключа) % 256
+                // РѕС‚РєСЂС‹С‚С‹Р№ С‚РµРєСЃС‚ + Р±Р°Р№С‚ РєР»СЋС‡Р°) % 256
                 output->data[i] = (input.data[i] + autokeyByte) % 256;
             }
             return SUCCESS;
@@ -89,7 +89,7 @@ extern "C"
             return INVALID_INPUT;
         }
     }
-    // расшифрование
+    // СЂР°СЃС€РёС„СЂРѕРІР°РЅРёРµ
     int decrypt(ConstBuffer key, ConstBuffer input, MutBuffer* output)
     {
         try
@@ -127,7 +127,7 @@ extern "C"
                     autokeyByte = input.data[i - KEY_SIZE];
                 }
 
-                // (шифротекст - ключевой_байт + 256) % 256
+                // (С€РёС„СЂРѕС‚РµРєСЃС‚ - РєР»СЋС‡РµРІРѕР№_Р±Р°Р№С‚ + 256) % 256
                 output->data[i] = (input.data[i] - autokeyByte + 256) % 256;
             }
             return SUCCESS;
