@@ -138,7 +138,7 @@ extern "C"
         }
         catch (...)
         {
-            return INVALID_INPUT;
+            return IN-VALID_INPUT;
         }
     }
 
