@@ -176,8 +176,14 @@ bool loadBinary(const string& path, vector<uint8_t>& data)
 
 int main()
 {
+
 #ifdef _WIN32
-    system("chcp 1251 > nul");  // Переключаем консоль на Windows-1251
+    // Устанавливаем кодовую страницу консоли на UTF-8
+    SetConsoleOutputCP(65001);
+    SetConsoleCP(65001);
+    // Отключаем буферизацию, чтобы русский текст выводился сразу
+    setvbuf(stdout, nullptr, _IONBF, 0);
+    setvbuf(stderr, nullptr, _IONBF, 0);
 #endif
 
     cout << "=== Multi-Algo Cryptotool ===\n\n";
@@ -340,14 +346,6 @@ int main()
                     printf("%02X ", b);
                 }
                 cout << "\n";
-
-                for (uint8_t b : output)
-                {
-                    printf("%02X", b);
-                }
-                cout << "\n";
-
-
             }
             else
             {
