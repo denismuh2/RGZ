@@ -1,18 +1,18 @@
 #include "autokeyCipher.h"
 
-//анонимное пространство имен
+//Анонимное пространство имен
 namespace
 {
     constexpr size_t KEY_SIZE = 32;
 
     // Размещаем в защищённой памяти (константная секция)
-    static const char ALGO_NAME[] = "autokeyСipher";
+    static const char ALGO_NAME[] = "autokeyCipher";
 
     // Коды возврата для функций encrypt/decrypt
     constexpr int SUCCESS = 0;
-    constexpr int INVALID_KEY = 1;
-    constexpr int INVALID_INPUT = 2;
-    constexpr int INVALID_OUTPUT = 3;
+    constexpr int INVALID_KEY = -1;
+    constexpr int INVALID_INPUT = -2;
+    constexpr int INVALID_OUTPUT = -3;
 
     // Метаданные шифра
 const AlgorithmInfo algorithm_info
@@ -42,6 +42,9 @@ extern "C"
     {
         try
         {
+            if (input.size == 0){
+                return 0;
+            }
             if (key.data == nullptr)
             {
                 return INVALID_KEY;
@@ -51,7 +54,7 @@ extern "C"
                 return INVALID_KEY;
             }
 
-            if (input.data == nullptr)
+            if (input.size > 0 && input.data == nullptr)
             {
                 return INVALID_INPUT;
             }
@@ -86,7 +89,7 @@ extern "C"
                 // открытый текст + байт ключа) % 256
                 output->data[i] = (input.data[i] + autokeyByte) % 256;
             }
-            return SUCCESS;
+            return static_cast<int>(input.size);
         }
         catch (...)
         {
@@ -102,8 +105,10 @@ extern "C"
             {
                 return INVALID_KEY;
             }
-
-            if (input.data == nullptr)
+            if (input.size == 0){
+                return 0;
+            }
+            if (input.size > 0 && input.data == nullptr)
             {
                 return INVALID_INPUT;
             }
@@ -134,11 +139,11 @@ extern "C"
                 // (шифротекст - ключевой_байт + 256) % 256
                 output->data[i] = (input.data[i] - autokeyByte + 256) % 256;
             }
-            return SUCCESS;
+            return static_cast<int>(input.size);
         }
         catch (...)
         {
-            return IN-VALID_INPUT;
+            return INVALID_INPUT;
         }
     }
 

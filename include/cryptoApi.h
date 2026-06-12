@@ -38,7 +38,13 @@ enum OperationType
     ENCRYPT_OPERATION = 0,
     DECRYPT_OPERATION = 1
 };
-
+enum CryptoError
+{
+    CRYPTO_SUCCESS = 0,
+    CRYPTO_INVALID_KEY = -1,
+    CRYPTO_INVALID_INPUT = -2,
+    CRYPTO_INVALID_OUTPUT = -3
+};
 // ========== ФУНКЦИИ (с CRYPTO_EXPORT) ==========
 #ifdef __cplusplus
 extern "C" {
