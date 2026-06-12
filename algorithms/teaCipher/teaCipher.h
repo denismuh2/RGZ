@@ -13,17 +13,18 @@ extern "C"
         size_t inputSize,
         int operationType
     );
-    //Шифрование
+
+    // Шифрование
     CRYPTO_EXPORT int encrypt(
         ConstBuffer key,      // ключ (32 байта)
         ConstBuffer input,    // данные для шифрования
         MutBuffer* output     // результат шифрования
     );
 
-    //Дешифрование
+    // Дешифрование
     CRYPTO_EXPORT int decrypt(
         ConstBuffer key,      // ключ (32 байта)
-        ConstBuffer input,    // данные для расшифрования (шифротекст)
-        MutBuffer* output     // результат расшифрования (открытый текст)
+        ConstBuffer input,    // данные для расшифрования
+        MutBuffer* output     // результат расшифрования
     );
 }

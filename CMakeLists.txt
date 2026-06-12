@@ -11,7 +11,8 @@ set(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_subdirectory(algorithms/autokeyCipher)
 add_subdirectory(algorithms/feistelCipher)
 add_subdirectory(algorithms/caesarCipher)
-add_subdirectory(algorithms/lcgCipher) 
+add_subdirectory(algorithms/lcgCipher)
+add_subdirectory(algorithms/teaCipher) 
 # add_subdirectory(algorithms/другие...)
 
 # Главное приложение (EXE)
@@ -21,6 +22,8 @@ target_include_directories(EncryptionRGR PRIVATE ${INCLUDE_DIR})
 
 if(MSVC)
     target_compile_options(EncryptionRGR PRIVATE /source-charset:utf-8 /execution-charset:windows-1251)
+else()
+    target_compile_options(EncryptionRGR PRIVATE -finput-charset=UTF-8 -fexec-charset=CP1251)
 endif()
 
 # Для Linux: добавляем библиотеку dl (для dlopen/dlsym)
@@ -30,7 +33,7 @@ endif()
 
 # ВАЖНО: Указываем, что EXE зависит от DLL (чтобы DLL собрались первыми)
 if(WIN32)
-    add_dependencies(EncryptionRGR autokeyCipher feistelCipher caesarCipher lcgCipher) 
+    add_dependencies(EncryptionRGR autokeyCipher feistelCipher caesarCipher lcgCipher teaCipher) 
 endif()
 
 # Кроссплатформенное копирование библиотек после сборки
@@ -48,7 +51,10 @@ if(WIN32)
             ${CMAKE_BINARY_DIR}/caesarCipher.dll
         COMMAND ${CMAKE_COMMAND} -E copy_if_different                      
             ${CMAKE_BINARY_DIR}/algorithms/lcgCipher/lcgCipher.dll          
-            ${CMAKE_BINARY_DIR}/lcgCipher.dll                              
+            ${CMAKE_BINARY_DIR}/lcgCipher.dll
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different                      
+            ${CMAKE_BINARY_DIR}/algorithms/teaCipher/teaCipher.dll          
+            ${CMAKE_BINARY_DIR}/teaCipher.dll                              
         COMMENT "Copying DLLs to binary directory"
     )
 else()
@@ -65,11 +71,14 @@ else()
             ${CMAKE_BINARY_DIR}/libcaesarCipher.so
         COMMAND ${CMAKE_COMMAND} -E copy_if_different                      
             ${CMAKE_BINARY_DIR}/algorithms/lcgCipher/liblcgCipher.so
-            ${CMAKE_BINARY_DIR}/liblcgCipher.so                            
+            ${CMAKE_BINARY_DIR}/liblcgCipher.so
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different                      
+            ${CMAKE_BINARY_DIR}/algorithms/teaCipher/libteaCipher.so
+            ${CMAKE_BINARY_DIR}/libteaCipher.so                            
         COMMENT "Copying shared libraries to binary directory"
     )
 endif()
 
 message(STATUS "Project: ${PROJECT_NAME}")
 message(STATUS "  Executable: ${PROJECT_NAME}")
-message(STATUS "  Libraries: autokeyCipher, feistelCipher, caesarCipher, lcgCipher")
+message(STATUS "  Libraries: autokeyCipher, feistelCipher, caesarCipher, lcgCipher, teaCipher")
