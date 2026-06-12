@@ -1,8 +1,8 @@
 #pragma once
-
+#include <vector>
 #include <cstddef>
 #include <cstdint>
-
+#include <cstring>
 // ========== МАКРОС ДЛЯ ЭКСПОРТА/ИМПОРТА DLL ==========
 #ifdef _WIN32
     #ifdef CRYPTO_BUILD_DLL
@@ -38,7 +38,13 @@ enum OperationType
     ENCRYPT_OPERATION = 0,
     DECRYPT_OPERATION = 1
 };
-
+enum CryptoError
+{
+    CRYPTO_SUCCESS = 0,
+    CRYPTO_INVALID_KEY = -1,
+    CRYPTO_INVALID_INPUT = -2,
+    CRYPTO_INVALID_OUTPUT = -3
+};
 // ========== ФУНКЦИИ (с CRYPTO_EXPORT) ==========
 #ifdef __cplusplus
 extern "C" {

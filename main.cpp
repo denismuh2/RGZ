@@ -5,16 +5,31 @@
 #include <filesystem>
 #include <random>
 #include <algorithm>
+#include <iomanip>
 
-#include <windows.h>
+#ifdef _WIN32
+    #include <windows.h>
+#else
+    #include <dlfcn.h>
+    #include <cstring>
+#endif
 
 #include "include/cryptoApi.h"
 
 using namespace std;
 
+// Кроссплатформенный тип для библиотеки
+#ifdef _WIN32
+    using LibHandle = HMODULE;
+    const char* LIB_EXT = ".dll";
+#else
+    using LibHandle = void*;
+    const char* LIB_EXT = ".so";
+#endif
+
 struct CryptoModule
 {
-    HMODULE library = nullptr;
+    LibHandle library = nullptr;
     string name;
     string path;
 
@@ -24,84 +39,105 @@ struct CryptoModule
     int (*decrypt)(ConstBuffer, ConstBuffer, MutBuffer*) = nullptr;
 };
 
-// Поиск всех DLL в папке algorithms/
-vector<string> find_dlls_in_algorithms_folder()
+// Кроссплатформенная загрузка библиотеки
+LibHandle loadLibrary(const string& path)
 {
-    vector<string> dllPaths;
+#ifdef _WIN32
+    return LoadLibraryA(path.c_str());
+#else
+    return dlopen(path.c_str(), RTLD_LAZY);
+#endif
+}
 
-    // Папка algorithms находится в корне проекта
+// Кроссплатформенное получение функции
+void* getFunction(LibHandle lib, const char* name)
+{
+#ifdef _WIN32
+    return (void*)GetProcAddress(lib, name);
+#else
+    return dlsym(lib, name);
+#endif
+}
+
+// Кроссплатформенная выгрузка библиотеки
+void unloadLibrary(LibHandle lib)
+{
+#ifdef _WIN32
+    FreeLibrary(lib);
+#else
+    dlclose(lib);
+#endif
+}
+
+// Поиск всех библиотек в папке algorithms/
+vector<string> findLibsInAlgorithmsFolder()
+{
+    vector<string> libPaths;
     filesystem::path algorithms_dir = filesystem::current_path() / "algorithms";
 
     if (!filesystem::exists(algorithms_dir))
     {
-        cout << "Folder 'algorithms' not found in: " << filesystem::current_path() << "\n";
-        return dllPaths;
+        cout << "Папка 'algorithms' не найдена в: " << filesystem::current_path() << "\n";
+        return libPaths;
     }
 
     for (const auto& entry : filesystem::directory_iterator(algorithms_dir))
     {
         if (entry.is_directory())
         {
-            // Ищем .dll или .so в подпапке
             for (const auto& file : filesystem::directory_iterator(entry.path()))
             {
                 string ext = file.path().extension().string();
-                string filename = file.path().filename().string();
-
-#ifdef _WIN32
-                if (ext == ".dll")
-#else
-                if (ext == ".so" || filename.find(".so") != string::npos)
-#endif
+                if (ext == LIB_EXT)
                 {
-                    dllPaths.push_back(file.path().string());
-                    cout << "Found DLL: " << file.path().filename().string() << "\n";
+                    libPaths.push_back(file.path().string());
+                    cout << "Найдена библиотека: " << file.path().filename().string() << "\n";
                 }
             }
         }
         else
         {
-            // Ищем .dll прямо в папке algorithms (если есть)
             string ext = entry.path().extension().string();
-#ifdef _WIN32
-            if (ext == ".dll")
-#else
-            if (ext == ".so")
-#endif
+            if (ext == LIB_EXT)
             {
-                dllPaths.push_back(entry.path().string());
-                cout << "Found DLL: " << entry.path().filename().string() << "\n";
+                libPaths.push_back(entry.path().string());
+                cout << "Найдена библиотека: " << entry.path().filename().string() << "\n";
             }
         }
     }
 
-    return dllPaths;
+    return libPaths;
 }
 
 // Загрузка модуля по пути
-bool loadModule(const string& dll_path, CryptoModule& module)
+bool loadModule(const string& libPath, CryptoModule& module)
 {
-    module.path = dll_path;
-    module.name = filesystem::path(dll_path).filename().string();
+    module.path = libPath;
+    module.name = filesystem::path(libPath).filename().string();
 
-    module.library = LoadLibraryA(dll_path.c_str());
+    module.library = loadLibrary(libPath);
 
     if (!module.library)
     {
+#ifdef _WIN32
+        cerr << "Ошибка загрузки: " << GetLastError() << endl;
+#else
+        cerr << "Ошибка загрузки: " << dlerror() << endl;
+#endif
         return false;
     }
 
     module.getAlgorithmInfo = reinterpret_cast<decltype(module.getAlgorithmInfo)>(
-        GetProcAddress(module.library, "getAlgorithmInfo"));
+        getFunction(module.library, "getAlgorithmInfo"));
 
     module.getOutputSize = reinterpret_cast<decltype(module.getOutputSize)>(
-        GetProcAddress(module.library, "getOutputSize"));
+        getFunction(module.library, "getOutputSize"));
 
     module.encrypt = reinterpret_cast<decltype(module.encrypt)>(
-        GetProcAddress(module.library, "encrypt"));
+        getFunction(module.library, "encrypt"));
 
     module.decrypt = reinterpret_cast<decltype(module.decrypt)>(
-        GetProcAddress(module.library, "decrypt"));
+        getFunction(module.library, "decrypt"));
 
     return module.getAlgorithmInfo &&
            module.getOutputSize &&
@@ -114,27 +150,27 @@ bool selectAlgorithm(const vector<CryptoModule>& modules, CryptoModule& selected
 {
     if (modules.empty())
     {
-        cout << "No algorithms found!\n";
+        cout << "Алгоритмы не найдены!\n";
         return false;
     }
 
-    cout << "\n=== Available algorithms ===\n";
+    cout << "\n=== Доступные алгоритмы ===\n";
     for (size_t i = 0; i < modules.size(); ++i)
     {
+        cout << dec;
         const AlgorithmInfo* info = modules[i].getAlgorithmInfo();
-        cout << i + 1 << ". " << info->algorithmName
-                  << " (key size: " << info->keySize  << " bytes)\n";
-        cout << "   File: " << modules[i].name << "\n";
+        cout << i + 1 << ". " << info->algorithmName << " (размер ключа: " << info->keySize << " байт)\n";
+        cout << "   Файл: " << modules[i].name << "\n";
     }
 
     int choice;
-    cout << "\nSelect algorithm (1-" << modules.size() << "): ";
+    cout << "\nВыберите алгоритм (1-" << modules.size() << "): ";
     cin >> choice;
     cin.ignore();
 
     if (choice < 1 || choice > static_cast<int>(modules.size()))
     {
-        cout << "Invalid choice\n";
+        cout << "Неверный выбор\n";
         return false;
     }
 
@@ -142,6 +178,7 @@ bool selectAlgorithm(const vector<CryptoModule>& modules, CryptoModule& selected
     return true;
 }
 
+// Генерация ключа
 vector<uint8_t> generateKey(size_t size)
 {
     random_device rd;
@@ -153,6 +190,7 @@ vector<uint8_t> generateKey(size_t size)
     return key;
 }
 
+// Сохранение бинарного файла
 bool saveBinary(const string& path, const vector<uint8_t>& data)
 {
     ofstream file(path, ios::binary);
@@ -161,6 +199,7 @@ bool saveBinary(const string& path, const vector<uint8_t>& data)
     return true;
 }
 
+// Загрузка бинарного файла
 bool loadBinary(const string& path, vector<uint8_t>& data)
 {
     ifstream file(path, ios::binary);
@@ -178,47 +217,42 @@ bool loadBinary(const string& path, vector<uint8_t>& data)
 int main()
 {
 #ifdef _WIN32
-    SetConsoleOutputCP(CP_UTF8);
-    SetConsoleCP(CP_UTF8);
+    system("chcp 1251 > nul");
 #endif
 
-    cout << "=== Multi-Algo Cryptotool ===\n\n";
+    cout << "Поиск библиотек в папке 'algorithms/'...\n";
+    vector<string> libPaths = findLibsInAlgorithmsFolder();
 
-    // 1. Поиск всех DLL в папке algorithms/
-    cout << "Searching for DLLs in 'algorithms/' folder...\n";
-    vector<string> dllPaths = find_dlls_in_algorithms_folder();
-
-    if (dllPaths.empty())
+    if (libPaths.empty())
     {
-        cout << "No DLLs found. Place your algorithm DLLs in 'algorithms/' folder.\n";
-        cout << "Press Enter to exit...";
+        cout << "Библиотеки не найдены. Поместите библиотеки алгоритмов в папку 'algorithms/'.\n";
+        cout << "Нажмите Enter для выхода...";
         cin.get();
         return 1;
     }
 
-    // 2. Загрузка всех найденных модулей
     vector<CryptoModule> modules;
-    for (const auto& path : dllPaths)
+    for (const auto& path : libPaths)
     {
         CryptoModule module;
         if (loadModule(path, module))
         {
             modules.push_back(module);
-            cout << "Loaded: " << module.name << "\n";
+            cout << "Загружено: " << module.name << "\n";
         }
         else
         {
-            cout << "Failed to load: " << path << "\n";
+            cout << "Не удалось загрузить: " << path << "\n";
         }
     }
 
     if (modules.empty())
     {
-        cout << "No valid algorithms loaded.\n";
+        cout << "Нет загруженных алгоритмов.\n";
         return 1;
     }
 
-    // 3. Выбор алгоритма пользователем
+    // Выбор алгоритма пользователем
     CryptoModule module;
     if (!selectAlgorithm(modules, module))
     {
@@ -226,28 +260,35 @@ int main()
     }
 
     const AlgorithmInfo* info = module.getAlgorithmInfo();
-    cout << "\n=== Selected: " << info->algorithmName << " ===\n";
-    cout << "Key size: " << info->keySize << " bytes\n";
+    cout << "\n=== Выбран: " << info->algorithmName << " ===\n";
+    cout << "Размер ключа: " << info->keySize << " байт\n";
 
     vector<uint8_t> key;
 
-    // 4. Основное меню
+    // Основное меню
     while (true)
     {
         int choice;
 
-        cout << "\n=== Menu ===\n";
-        cout << "1. Generate key\n";
-        cout << "2. Load key\n";
-        cout << "3. Encrypt text\n";
-        cout << "4. Decrypt text (from hex)\n";
-        cout << "5. Encrypt file\n";
-        cout << "6. Decrypt file\n";
-        cout << "7. Switch algorithm\n";
-        cout << "0. Exit\n";
-        cout << "Choice: ";
+        cout << "\n=== Меню ===\n";
+        cout << "1. Сгенерировать ключ\n";
+        cout << "2. Загрузить ключ\n";
+        cout << "3. Зашифровать текст\n";
+        cout << "4. Расшифровать текст (из hex)\n";
+        cout << "5. Зашифровать файл\n";
+        cout << "6. Расшифровать файл\n";
+        cout << "7. Сменить алгоритм\n";
+        cout << "0. Выход\n";
+        cout << "Выбор: ";
 
         cin >> choice;
+        if (cin.fail()){
+        cin.clear();
+        cin.ignore(10000, '\n');
+        cout << "Ошибка! Введите число от 0 до 7\n";
+        continue;
+        }
+
         cin.ignore();
 
         if (choice == 0)
@@ -263,64 +304,64 @@ int main()
                 continue;
             }
             info = module.getAlgorithmInfo();
-            cout << "\n=== Selected: " << info->algorithmName << " ===\n";
-            cout << "Key size: " << info->keySize  << " bytes\n";
-            key.clear(); // Очищаем старый ключ (он может быть неправильного размера)
+            cout << "\n=== Выбран: " << info->algorithmName << " ===\n";
+            cout << "Размер ключа: " << info->keySize << " байт\n";
+            key.clear();
             continue;
         }
 
         if (choice == 1)
         {
-            key = generateKey(info->keySize );
+            key = generateKey(info->keySize);
 
             string path;
-            cout << "Save key to file: ";
+            cout << "Сохранить ключ в файл: ";
             getline(cin, path);
 
             if (saveBinary(path, key))
             {
-                cout << "Key saved (" << key.size() << " bytes)\n";
+                cout << "Ключ сохранён (" << key.size() << " байт)\n";
             }
             else
             {
-                cout << "Failed to save key\n";
+                cout << "Не удалось сохранить ключ\n";
             }
         }
 
-        else if (choice == 2)  // Load key
+        else if (choice == 2)
         {
             string path;
-            cout << "Load key from file: ";
+            cout << "Загрузить ключ из файла: ";
             getline(cin, path);
 
             vector<uint8_t> loadedKey;
             if (!loadBinary(path, loadedKey))
             {
-                cout << "Failed to load key\n";
+                cout << "Не удалось загрузить ключ\n";
                 continue;
             }
 
-            if (loadedKey.size() != info->keySize )
+            if (loadedKey.size() != info->keySize)
             {
-                cout << "Invalid key size. Expected " << info->keySize
-                          << " bytes, got " << loadedKey.size() << " bytes\n";
+                cout << "Неверный размер ключа. Ожидалось " << info->keySize
+                          << " байт, получено " << loadedKey.size() << " байт\n";
                 continue;
             }
 
             key = loadedKey;
-            cout << "Key loaded (" << key.size() << " bytes)\n";
+            cout << "Ключ загружен (" << key.size() << " байт)\n";
         }
 
-        else if (choice == 3)  // Encrypt text
+        else if (choice == 3)
         {
             if (key.empty())
             {
-                cout << "Please generate or load a key first (option 1)\n";
+                cout << "Пожалуйста, сначала сгенерируйте или загрузите ключ (пункт 1 или 2)\n";
                 continue;
             }
 
             string text;
-            cout << "Text to encrypt: ";
+            cout << "Текст для шифрования: ";
             getline(cin, text);
 
             vector<uint8_t> input(text.begin(), text.end());
@@ -336,40 +377,60 @@ int main()
 
             if (result >= 0)
             {
-                cout << "\nEncrypted bytes (" << output.size() << "):\n";
-                for (uint8_t b : output)
-                {
-                    printf("%02X ", b);
+                cout << "\nЗашифрованные байты (" << result << "):\n";
+
+                for (int i = 0; i < result; ++i){
+                    cout << hex << setw(2) << setfill('0')
+                    << static_cast<int>(output[i]) << " ";
                 }
                 cout << "\n";
+
+                for (int i = 0; i < result; ++i){
+                    cout << hex << setw(2) << setfill('0')
+                    << static_cast<int>(output[i]);
+                }
+                cout << "\n";
+
+                cout << dec; // вернуть десятичный вывод
             }
             else
             {
-                cout << "Encryption failed with code: " << result << "\n";
+                cout << "Ошибка шифрования, код: " << result << "\n";
             }
         }
 
-        else if (choice == 4)  // Decrypt text from hex
+        else if (choice == 4)
         {
             if (key.empty())
             {
-                cout << "Please generate or load a key first (option 1)\n";
+                cout << "Пожалуйста, сначала сгенерируйте или загрузите ключ (пункт 1 или 2)\n";
                 continue;
             }
 
-            string hex_input;
-            cout << "Encrypted hex bytes: ";
-            getline(cin, hex_input);
+            string hexInput;
+            cout << "Зашифрованные hex-байты: ";
+            getline(cin, hexInput);
+            if (hexInput.size() % 2 != 0){
+                cout << "Ошибка: неверный hex\n";
+                continue;
+            }
 
             vector<uint8_t> input;
-            for (size_t i = 0; i < hex_input.length(); i += 2)
-            {
-                if (i + 1 < hex_input.length())
-                {
-                    string  byteStr = hex_input.substr(i, 2);
-                    uint8_t byte = static_cast<uint8_t>(stoi( byteStr, nullptr, 16));
-                    input.push_back(byte);
+            bool badHex = false;
+            for (size_t i = 0; i + 1 < hexInput.size(); i += 2){
+                string byteStr = hexInput.substr(i, 2);
+
+                if (!isxdigit(byteStr[0]) || !isxdigit(byteStr[1])){
+                    badHex = true;
+                    break;
                 }
+                input.push_back(
+                static_cast<uint8_t>(stoi(byteStr, nullptr, 16))
+                );
+            }
+            if (badHex || input.empty()){
+                cout << "Ошибка: неверный hex\n";
+                continue;
             }
             vector<uint8_t> output(module.getOutputSize(input.size(), DECRYPT_OPERATION));
             MutBuffer out{output.data(), output.size()};
@@ -380,75 +441,72 @@ int main()
                 &out
             );
 
-            if (result >= 0)
-            {
-                string text(output.begin(), output.end());
-                cout << "Decrypted text: " << text << "\n";
+            if (result >= 0){
+                output.resize(result);
+                string text(reinterpret_cast<char*>(output.data()),output.size());
+                cout << "Расшифрованный текст: " << text << "\n";
             }
             else
             {
-                cout << "Decryption failed with code: " << result << "\n";
+                cout << "Ошибка расшифрования, код: " << result << "\n";
             }
         }
 
-        else if (choice == 5)  // Encrypt file
-        {
-            if (key.empty())
-            {
-                cout << "Please generate or load a key first (option 1)\n";
+        else if (choice == 5){
+            if (key.empty()){
+                cout << "Пожалуйста, сначала сгенерируйте или загрузите ключ (пункт 1 или 2)\n";
                 continue;
             }
 
             string inputPath, outputPath;
-            cout << "Input file: ";
+            cout << "Входной файл: ";
             getline(cin, inputPath);
-            cout << "Output file: ";
+            cout << "Выходной файл: ";
             getline(cin, outputPath);
 
             vector<uint8_t> input;
-            if (!loadBinary(inputPath, input))
-            {
-                cout << "Failed to read input file\n";
+            if (!loadBinary(inputPath, input)){
+                cout << "Не удалось прочитать входной файл\n";
                 continue;
             }
 
             vector<uint8_t> output(module.getOutputSize(input.size(), ENCRYPT_OPERATION));
             MutBuffer out{output.data(), output.size()};
 
-            int result = module.encrypt(
-                {key.data(), key.size()},
-                {input.data(), input.size()},
-                &out
-            );
+            int result = module.encrypt({key.data(), key.size()},{input.data(), input.size()},&out);
 
-            if (result >= 0 && saveBinary(outputPath, output))
-            {
-                cout << "File encrypted successfully\n";
+            if (result >= 0){
+                output.resize(result);
+
+                if (saveBinary(outputPath, output)){
+                    cout << "Файл успешно зашифрован\n";
+                }
+                else{
+                    cout << "Ошибка сохранения файла\n";
+                }
             }
-            else
-            {
-                cout << "Encryption failed\n";
+            else{
+                cout << "Ошибка шифрования\n";
             }
         }
 
-        else if (choice == 6)  // Decrypt file
-        {
+        else if (choice == 6){
             if (key.empty())
             {
-                cout << "Please generate or load a key first (option 1)\n";
+                cout << "Пожалуйста, сначала сгенерируйте или загрузите ключ (пункт 1 или 2)\n";
                 continue;
             }
 
             string inputPath, outputPath;
-            cout << "Input file: ";
+            cout << "Входной файл: ";
             getline(cin, inputPath);
-            cout << "Output file: ";
+            cout << "Выходной файл: ";
             getline(cin, outputPath);
 
             vector<uint8_t> input;
             if (!loadBinary(inputPath, input))
             {
-                cout << "Failed to read input file\n";
+                cout << "Не удалось прочитать входной файл\n";
                 continue;
             }
 
@@ -461,23 +519,28 @@ int main()
                 &out
             );
 
-            if (result >= 0 && saveBinary(outputPath, output))
-            {
-                cout << "File decrypted successfully\n";
+            if (result >= 0){
+                output.resize(result);
+
+                if (saveBinary(outputPath, output)){
+                    cout << "Файл успешно расшифрован\n";
+                }
+                else{
+                    cout << "Ошибка сохранения файла\n";
+                }
             }
-            else
-            {
-                cout << "Decryption failed\n";
+            else{
+                cout << "Ошибка расшифрования\n";
             }
         }
     }
 
-    // 5. Очистка
-    for (auto& module : modules)
+    // Очистка
+    for (auto& mod : modules)
     {
-        if (module.library)
+        if (mod.library)
         {
-            FreeLibrary(module.library);
+            unloadLibrary(mod.library);
         }
     }
 

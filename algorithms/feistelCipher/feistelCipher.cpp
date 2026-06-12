@@ -156,7 +156,6 @@ extern "C"
             if (input.size % BLOCK_SIZE != 0)
                 return INVALID_INPUT;
 
-            // 🔥 ВАЖНО: работаем через промежуточный буфер
             std::vector<uint8_t> buffer(input.size);
             std::memcpy(buffer.data(), input.data, input.size);
 

@@ -42,28 +42,20 @@ extern "C"
     {
         try
         {
-            if (input.size == 0){
-                return 0;
-            }
-            if (key.data == nullptr)
+            if (key.data == nullptr || key.size != KEY_SIZE)
             {
                 return INVALID_KEY;
             }
-            if (key.size != KEY_SIZE)
-            {
-                return INVALID_KEY;
-            }
-
             if (input.size > 0 && input.data == nullptr)
             {
                 return INVALID_INPUT;
             }
-
-            if (output == nullptr)
+            if (input.size == 0)
             {
-                return INVALID_OUTPUT;
+                return SUCCESS;
             }
-            if (output->data == nullptr)
+
+            if (output == nullptr || output->data == nullptr)
             {
                 return INVALID_OUTPUT;
             }
@@ -96,6 +88,7 @@ extern "C"
             return INVALID_INPUT;
         }
     }
+
     // расшифрование
     int decrypt(ConstBuffer key, ConstBuffer input, MutBuffer* output)
     {
@@ -105,19 +98,19 @@ extern "C"
             {
                 return INVALID_KEY;
             }
-            if (input.size == 0){
-                return 0;
-            }
+
             if (input.size > 0 && input.data == nullptr)
             {
                 return INVALID_INPUT;
             }
-
+            if (input.size == 0)
+            {
+                return SUCCESS;
+            }
             if (output == nullptr || output->data == nullptr)
             {
                 return INVALID_OUTPUT;
             }
-
             if (output->size < input.size)
             {
                 return INVALID_OUTPUT;
@@ -146,5 +139,4 @@ extern "C"
             return INVALID_INPUT;
         }
     }
-
 }
