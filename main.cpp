@@ -442,7 +442,8 @@ int main()
             );
 
             if (result >= 0){
-                string text(output.begin(), output.begin() + result);
+                output.resize(result);
+                string text(reinterpret_cast<char*>(output.data()),output.size());
                 cout << "Расшифрованный текст: " << text << "\n";
             }
             else
@@ -451,10 +452,8 @@ int main()
             }
         }
 
-        else if (choice == 5)
-        {
-            if (key.empty())
-            {
+        else if (choice == 5){
+            if (key.empty()){
                 cout << "Пожалуйста, сначала сгенерируйте или загрузите ключ (пункт 1 или 2)\n";
                 continue;
             }
@@ -466,8 +465,7 @@ int main()
             getline(cin, outputPath);
 
             vector<uint8_t> input;
-            if (!loadBinary(inputPath, input))
-            {
+            if (!loadBinary(inputPath, input)){
                 cout << "Не удалось прочитать входной файл\n";
                 continue;
             }
@@ -475,24 +473,24 @@ int main()
             vector<uint8_t> output(module.getOutputSize(input.size(), ENCRYPT_OPERATION));
             MutBuffer out{output.data(), output.size()};
 
-            int result = module.encrypt(
-                {key.data(), key.size()},
-                {input.data(), input.size()},
-                &out
-            );
+            int result = module.encrypt({key.data(), key.size()},{input.data(), input.size()},&out);
 
-            if (result >= 0 && saveBinary(outputPath, output))
-            {
-                cout << "Файл успешно зашифрован\n";
+            if (result >= 0){
+                output.resize(result);
+
+                if (saveBinary(outputPath, output)){
+                    cout << "Файл успешно зашифрован\n";
+                }
+                else{
+                    cout << "Ошибка сохранения файла\n";
+                }
             }
-            else
-            {
+            else{
                 cout << "Ошибка шифрования\n";
             }
         }
 
-        else if (choice == 6)
-        {
+        else if (choice == 6){
             if (key.empty())
             {
                 cout << "Пожалуйста, сначала сгенерируйте или загрузите ключ (пункт 1 или 2)\n";
@@ -521,16 +519,22 @@ int main()
                 &out
             );
 
-            if (result >= 0 && saveBinary(outputPath, output))
-            {
-                cout << "Файл успешно расшифрован\n";
+            if (result >= 0){
+                output.resize(result);
+
+                if (saveBinary(outputPath, output)){
+                    cout << "Файл успешно расшифрован\n";
+                }
+                else{
+                    cout << "Ошибка сохранения файла\n";
+                }
             }
-            else
-            {
+            else{
                 cout << "Ошибка расшифрования\n";
             }
         }
     }
+
     // 5. Очистка
     for (auto& mod : modules)
     {
