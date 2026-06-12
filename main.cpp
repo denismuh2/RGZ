@@ -378,17 +378,20 @@ int main()
             if (result >= 0)
             {
                 cout << "\nЗашифрованные байты (" << result << "):\n";
-                for (uint8_t b : output)
-                {
-                    cout << hex << setw(2) << setfill('0') << static_cast<int>(b) << " ";
+
+                for (int i = 0; i < result; ++i){
+                    cout << hex << setw(2) << setfill('0')
+                    << static_cast<int>(output[i]) << " ";
                 }
                 cout << "\n";
 
-                for (uint8_t b : output)
-                {
-                    cout << hex << setw(2) << setfill('0') << static_cast<int>(b);
+                for (int i = 0; i < result; ++i){
+                    cout << hex << setw(2) << setfill('0')
+                    << static_cast<int>(output[i]);
                 }
                 cout << "\n";
+
+                cout << dec; // вернуть десятичный вывод
             }
             else
             {
@@ -407,16 +410,27 @@ int main()
             string hexInput;
             cout << "Зашифрованные hex-байты: ";
             getline(cin, hexInput);
+            if (hexInput.size() % 2 != 0){
+                cout << "Ошибка: неверный hex\n";
+                continue;
+            }
 
             vector<uint8_t> input;
-            for (size_t i = 0; i < hexInput.length(); i += 2)
-            {
-                if (i + 1 < hexInput.length())
-                {
-                    string  byteStr = hexInput.substr(i, 2);
-                    uint8_t byte = static_cast<uint8_t>(stoi(byteStr, nullptr, 16));
-                    input.push_back(byte);
+            bool badHex = false;
+            for (size_t i = 0; i + 1 < hexInput.size(); i += 2){
+                string byteStr = hexInput.substr(i, 2);
+
+                if (!isxdigit(byteStr[0]) || !isxdigit(byteStr[1])){
+                    badHex = true;
+                    break;
                 }
+                input.push_back(
+                static_cast<uint8_t>(stoi(byteStr, nullptr, 16))
+                );
+            }
+            if (badHex || input.empty()){
+                cout << "Ошибка: неверный hex\n";
+                continue;
             }
             vector<uint8_t> output(module.getOutputSize(input.size(), DECRYPT_OPERATION));
             MutBuffer out{output.data(), output.size()};
@@ -427,9 +441,8 @@ int main()
                 &out
             );
 
-            if (result >= 0)
-            {
-                string text(output.begin(), output.end());
+            if (result >= 0){
+                string text(output.begin(), output.begin() + result);
                 cout << "Расшифрованный текст: " << text << "\n";
             }
             else
@@ -518,7 +531,6 @@ int main()
             }
         }
     }
-
     // 5. Очистка
     for (auto& mod : modules)
     {
