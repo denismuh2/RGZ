@@ -10,6 +10,8 @@ set(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 # Подключаем подпроекты (каждая библиотека собирается отдельно)
 add_subdirectory(algorithms/autokeyCipher)
 add_subdirectory(algorithms/feistelCipher)
+add_subdirectory(algorithms/caesarCipher)
+add_subdirectory(algorithms/chacha20)
 # add_subdirectory(algorithms/другие...)
 
 # Главное приложение (EXE)
@@ -39,6 +41,12 @@ if(WIN32)
             ${CMAKE_BINARY_DIR}/algorithms/feistelCipher/feistelCipher.dll
             ${CMAKE_BINARY_DIR}/feistelCipher.dll
         COMMENT "Copying DLLs to binary directory"
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    	    ${CMAKE_BINARY_DIR}/algorithms/caesarCipher/caesarCipher.dll
+    	    ${CMAKE_BINARY_DIR}/caesarCipher.dll
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    	    ${CMAKE_BINARY_DIR}/algorithms/chacha20/chacha20.dll
+    	    ${CMAKE_BINARY_DIR}/chacha20.dll
     )
 else()
     # Linux: копируем .so
@@ -50,9 +58,15 @@ else()
             ${CMAKE_BINARY_DIR}/algorithms/feistelCipher/libfeistelCipher.so
             ${CMAKE_BINARY_DIR}/libfeistelCipher.so
         COMMENT "Copying shared libraries to binary directory"
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    	    ${CMAKE_BINARY_DIR}/algorithms/caesarCipher/libcaesarCipher.so
+	    ${CMAKE_BINARY_DIR}/libcaesarCipher.so
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    	    ${CMAKE_BINARY_DIR}/algorithms/chacha20/libchacha20.so
+    	    ${CMAKE_BINARY_DIR}/libchacha20.so
     )
 endif()
 
 message(STATUS "Project: ${PROJECT_NAME}")
 message(STATUS "  Executable: ${PROJECT_NAME}")
-message(STATUS "  Libraries: autokeyCipher, feistelCipher")
+message(STATUS "  Libraries: autokeyCipher, feistelCipher, caesarCipher, chacha20")
