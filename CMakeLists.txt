@@ -14,6 +14,8 @@ add_subdirectory(algorithms/caesarCipher)
 add_subdirectory(algorithms/lcgCipher)
 add_subdirectory(algorithms/teaCipher)
 add_subdirectory(algorithms/chacha20)
+add_subdirectory(algorithms/vernamCipher)
+add_subdirectory(algorithms/affineCipher)
 # add_subdirectory(algorithms/другие...)
 
 # Главное приложение (EXE)
@@ -34,7 +36,7 @@ endif()
 
 # ВАЖНО: Указываем, что EXE зависит от DLL (чтобы DLL собрались первыми)
 if(WIN32)
-    add_dependencies(EncryptionRGR autokeyCipher feistelCipher caesarCipher lcgCipher teaCipher chacha20) 
+    add_dependencies(EncryptionRGR autokeyCipher feistelCipher caesarCipher lcgCipher teaCipher chacha20 vernamCipher affineCipher) 
 endif()
 
 # Кроссплатформенное копирование библиотек после сборки
@@ -58,7 +60,13 @@ if(WIN32)
             ${CMAKE_BINARY_DIR}/teaCipher.dll
         COMMAND ${CMAKE_COMMAND} -E copy_if_different                      
             ${CMAKE_BINARY_DIR}/algorithms/chacha20/chacha20.dll          
-            ${CMAKE_BINARY_DIR}/chacha20.dll                              
+            ${CMAKE_BINARY_DIR}/chacha20.dll
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_BINARY_DIR}/algorithms/vernamCipher/vernamCipher.dll
+            ${CMAKE_BINARY_DIR}/vernamCipher.dll
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_BINARY_DIR}/algorithms/affineCipher/affineCipher.dll
+            ${CMAKE_BINARY_DIR}/affineCipher.dll
         COMMENT "Copying DLLs to binary directory"
     )
 else()
@@ -81,11 +89,17 @@ else()
             ${CMAKE_BINARY_DIR}/libteaCipher.so
         COMMAND ${CMAKE_COMMAND} -E copy_if_different                      
             ${CMAKE_BINARY_DIR}/algorithms/chacha20/libchacha20.so
-            ${CMAKE_BINARY_DIR}/libchacha20.so                            
+            ${CMAKE_BINARY_DIR}/libchacha20.so
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_BINARY_DIR}/algorithms/vernamCipher/libvernamCipher.so
+            ${CMAKE_BINARY_DIR}/libvernamCipher.so
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_BINARY_DIR}/algorithms/affineCipher/libaffineCipher.so
+            ${CMAKE_BINARY_DIR}/libaffineCipher.so
         COMMENT "Copying shared libraries to binary directory"
     )
 endif()
 
 message(STATUS "Project: ${PROJECT_NAME}")
 message(STATUS "  Executable: ${PROJECT_NAME}")
-message(STATUS "  Libraries: autokeyCipher, feistelCipher, caesarCipher, lcgCipher, teaCipher, chacha20")
+message(STATUS "  Libraries: autokeyCipher, feistelCipher, caesarCipher, lcgCipher, teaCipher, chacha20, vernamCipher, affineCipher")
