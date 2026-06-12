@@ -13,7 +13,7 @@ add_subdirectory(algorithms/feistelCipher)
 add_subdirectory(algorithms/caesarCipher)
 add_subdirectory(algorithms/lcgCipher)
 add_subdirectory(algorithms/teaCipher)
-add_subdirectory(algorithms/chacha20)   # НОВЫЙ БЛОК: ChaCha20 шифр
+add_subdirectory(algorithms/chacha20)
 # add_subdirectory(algorithms/другие...)
 
 # Главное приложение (EXE)
